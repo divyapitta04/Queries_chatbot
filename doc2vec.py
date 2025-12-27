@@ -4,6 +4,7 @@ from nltk.tokenize import RegexpTokenizer
 tokenizer = RegexpTokenizer(r'\w+')
 from nltk.stem.porter import *
 from nltk.corpus import stopwords
+nltk.download('omw-1.4')
 nltk.download('stopwords')
 stop_words = set(stopwords.words('english')) 
 from nltk.stem.porter import *
@@ -14,7 +15,7 @@ from gensim.models import Word2Vec
 lemmatizer=WordNetLemmatizer()
 import pandas as pd
 
-df=pd.read_csv('Training.csv',encoding='unicode_escape')
+df=pd.read_csv('CancerQA.csv',encoding='unicode_escape')
 df_combined = df
 
 # ## functions to preprocess file
@@ -80,7 +81,7 @@ from gensim.models.doc2vec import Doc2Vec
 max_epochs = 500
 vec_size = 5
 alpha = 0.025
-model = Doc2Vec(size=vec_size,
+model = Doc2Vec(vector_size=vec_size,
                 alpha=alpha, 
                 min_alpha=0.00025,
                 min_count=5,
@@ -113,6 +114,7 @@ def get_answers(df,x,query1):
 
     # to find most similar doc using tags
     similar_doc = model.docvecs.most_similar([v1])
+    print("The answer similarity is:", similar_doc[0][1])
     return df.iloc[int(similar_doc[0][0])][1]
 
 

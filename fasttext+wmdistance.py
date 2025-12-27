@@ -12,8 +12,10 @@ stemmer=PorterStemmer()
 from gensim.models import Word2Vec
 from gensim.models import FastText
 import pandas as pd
+from numpy import dot
+from numpy.linalg import norm
 
-df=pd.read_csv('Training.csv',encoding='unicode_escape')
+df=pd.read_csv('CancerQA.csv',encoding='unicode_escape')
 df_combined = df
 
 def preprocess_text(text):
@@ -72,25 +74,35 @@ model_para.init_sims(replace=True)
 model_topic=FastText(topics,min_count=1)
 model_topic.init_sims(replace=True)
 
+def sentence_vector(model, sentence):
+    # Average word vectors for a sentence
+    vectors = [model.wv[word] for word in sentence if word in model.wv]
+    if not vectors:
+        return None
+    return sum(vectors) / len(vectors)
 
-# ## applying model
-def get_answers(df_combined,query1):
-    query=Answer_Pre_Processing(query1)
-    q=preprocess_text(query)
+def cosine_sim(a, b):
+    return dot(a, b) / (norm(a) * norm(b))
 
-    count=0
-    min1=1000
-    result=""
+def get_answers(df_combined, query1):
+    query = Answer_Pre_Processing(query1)
+    q = preprocess_text(query)
+    q_vec = sentence_vector(model_para, q)
+    if q_vec is None:
+        return "Sorry, I couldn't understand your query.", 0
+
+    max_sim = -1
+    result = ""
     for i in range(len(df_combined)):
-
-        distance=model_para.wmdistance(q,para[i])
-        
-        if distance<min1:
-            min1=distance
-            result=df_combined.iloc[i][2]
-        count=count+1
-        #print ('distance = %.3f' % distance)
-    return result,distance
+        para_vec = sentence_vector(model_para, para[i])
+        if para_vec is None:
+            continue
+        sim = cosine_sim(q_vec, para_vec)
+        if sim > max_sim:
+            max_sim = sim
+            print("The answer similarity is:", max_sim)
+            result = df_combined.iloc[i]['Answer']
+    return result, max_sim
 
 
 # ## initiating chat process
@@ -109,7 +121,7 @@ while x!=0:
         q1=q1+d+" "
     res,r=get_answers(df,q1)
     #print(r)
-    if r<0.7:
+    if r>0.7:
         print(res)
     else:
         print("Sorry I don't have the answer. Can you please rephrase the query")

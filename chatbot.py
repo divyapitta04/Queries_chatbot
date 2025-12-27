@@ -13,13 +13,9 @@ stemmer=PorterStemmer()
 from gensim.models import Word2Vec
 from gensim.models import FastText
 from glove import Corpus,Glove
-from pyemd import wmd
-
-
 import pandas as pd
-df=pd.read_csv('Training.csv',encoding='unicode_escape')
+df=pd.read_csv('CancerQA.csv',encoding='unicode_escape')
 df_combined = df
-
 
 def preprocess_text(text):
     lemmatizer=WordNetLemmatizer()

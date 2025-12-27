@@ -2,13 +2,11 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-import base64
-import string
-import re
-from collections import Counter
+import nltk
+nltk.download('stopwords')
 from nltk.corpus import stopwords
 stopwords = stopwords.words('english')
-all_data=pd.read_csv("final_data_ir.csv",encoding='utf8')
+all_data=pd.read_csv("CancerQA.csv",encoding='utf8')
 
 # # Preprocessing
 from nltk.tokenize import RegexpTokenizer
@@ -18,10 +16,10 @@ stop_words = stopwords.words('english')
 wordnet_lemmatizer = WordNetLemmatizer()
 from nltk.stem.porter import PorterStemmer
 porter_stemmer  = PorterStemmer()
-import re
+
 import inflect
 def Pre_Processing(file):
-    print(file)
+    # print(file)
     token_files=[]
     after_lower=[]
     after_lemmatizer=[]
@@ -75,8 +73,8 @@ x=[]
 from sklearn.feature_extraction.text import TfidfVectorizer
 k=0
 while(k<len(all_data)):
-    if(all_data['title'][k] != "nan"):
-        preprossed_file=Pre_Processing(all_data['title'][k])
+    if(all_data['Question'][k] != "nan"):
+        preprossed_file=Pre_Processing(all_data['Question'][k])
         text=""
         for c in preprossed_file:
             text=text+" "+c
@@ -84,10 +82,10 @@ while(k<len(all_data)):
     k=k+1
 vectorizer = TfidfVectorizer()
 X = vectorizer.fit_transform(x)
-words=vectorizer.get_feature_names()
+words=vectorizer.get_feature_names_out()
 
 
-df = pd.DataFrame(X.toarray(),columns = vectorizer.get_feature_names())
+df = pd.DataFrame(X.toarray(),columns = vectorizer.get_feature_names_out())
 List1=[]
 for term in df.columns:
     c=0
@@ -105,7 +103,6 @@ sorted_x = sorted(dict1.items(), key=operator.itemgetter(1),reverse=True)
 
 
 # # Top 20 most Frequent words
-
 df1=pd.DataFrame(sorted_x)
 df2=df1.head(20)
 xaxis=list(df2[0])
@@ -128,7 +125,8 @@ def get_answers(all_data,query):
         related_product_indices = cosine_similarities.argsort()[:-11:-1]
         if cosine_similarities>maxval:
             maxval=cosine_similarities
-            answer=all_data['Answer1'][i]
+            print("The answer similarity is:", maxval[0])
+            answer=all_data['Answer'][i]
     return (answer)
 
 

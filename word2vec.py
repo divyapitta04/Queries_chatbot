@@ -12,8 +12,10 @@ nltk.download('wordnet')
 stemmer=PorterStemmer()
 from gensim.models import Word2Vec
 import pandas as pd
+from numpy import dot
+from numpy.linalg import norm
 
-df=pd.read_csv('Training.csv',encoding='unicode_escape')
+df=pd.read_csv('CancerQA.csv',encoding='unicode_escape')
 df_combined = df
 
 def preprocess_text(text):
@@ -42,6 +44,30 @@ for i in range(len(df_combined)):
     text=str(text)
     para[i]=preprocess_text(text)
 
+def Answer_Pre_Processing(file):
+    token_files=[]
+    tokenizer = RegexpTokenizer(r'\w+')
+    token_files=(tokenizer.tokenize(str(file)))
+    for i in range(len(token_files)):
+        if(token_files[i]=='u' or token_files[i]=='U'):
+            token_files[i]='you'
+        elif(token_files[i]=='d' ):
+            token_files[i]='the'
+        elif(token_files[i]=='n' or token_files[i]=='nd'):
+            token_files[i]='and'
+        elif(token_files[i]=='hv' ):
+            token_files[i]='have'
+        elif(token_files[i]=='bcoz' or token_files[i]=='becoz' or token_files=='bcz'):
+            token_files[i]='because'
+        elif(token_files[i]=='ur' or token_files[i]=='Ur'):
+            token_files[i]='your'
+        elif(token_files[i]=='thru'):
+            token_files[i]='through'
+    str1=""
+    for word in token_files:
+        str1=str1+word+" "
+    return str1
+
 
 # ## applying model
 model_para=Word2Vec(para, min_count=1)
@@ -49,23 +75,37 @@ model_para.init_sims(replace=True)
 model_topic=Word2Vec(topics,min_count=1)
 model_topic.init_sims(replace=True)
 
-def get_answers(df_combined,query):
-# query="Is it compulsory to have a project?And does it act as an disadvantage in the interview process if one does not?"
-    q=preprocess_text(query)
+def sentence_vector(model, sentence):
+    # Average word vectors for a sentence
+    vectors = [model.wv[word] for word in sentence if word in model.wv]
+    if not vectors:
+        return None
+    return sum(vectors) / len(vectors)
 
-    count=0
-    min1=1000
-    result=""
+def cosine_sim(a, b):
+    return dot(a, b) / (norm(a) * norm(b))
+
+def get_answers(df_combined, query1):
+    query = Answer_Pre_Processing(query1)
+    q = preprocess_text(query)
+    q_vec = sentence_vector(model_para, q)
+    if q_vec is None:
+        return "Sorry, I couldn't understand your query.", 0
+
+    max_sim = -1
+    result = ""
     for i in range(len(df_combined)):
+        para_vec = sentence_vector(model_para, para[i])
+        if para_vec is None:
+            continue
+        sim = cosine_sim(q_vec, para_vec)
+        if sim > max_sim:
+            max_sim = sim
+            print("The answer similarity is:", max_sim)
+            print("The answer is:", df_combined.iloc[i]['Answer'])
+            result = df_combined.iloc[i]['Answer']
+    return result, max_sim
 
-        distance=model_para.wmdistance(q,para[i])
-
-        if distance<min1:
-            min1=distance
-            result=df.iloc[i][2]
-        count=count+1
-        #print ('distance = %.3f' % distance)
-    return result,distance
 
 # ## initiating chat process
 print("Hello user")
